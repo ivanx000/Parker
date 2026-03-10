@@ -1,0 +1,27 @@
+{
+  "name": "parker",
+  "private": true,
+  "main": "app/index.js",
+  "description": "Parker - Find your parked car with Expo React Native",
+  "scripts": {
+    "install:app": "npm --prefix app install",
+    "dev": "npm --prefix app start",
+    "dev:android": "npm --prefix app run android",
+    "dev:ios": "npm --prefix app run ios",
+    "dev:web": "npm --prefix app run web",
+    "backend": "cd backend && python main.py",
+    "lint": "npm --prefix app run lint",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
+  },
+  "dependencies": {
+    "expo": "~54.0.33",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.10",
+    "typescript": "~5.9.2"
+  },
+  "version": "1.0.0"
+}

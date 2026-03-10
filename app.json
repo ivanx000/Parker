@@ -1,0 +1,8 @@
+{
+  "ios": {
+    "bundleIdentifier": "com.anonymous.parker"
+  },
+  "android": {
+    "package": "com.anonymous.parker"
+  }
+}

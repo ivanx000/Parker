@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Parker",
+    "slug": "parker",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "icon": "./assets/icon.png",
+    "ios": {
+      "supportsTabletMode": true,
+      "config": {
+        "googleMapsApiKey": "REDACTED_ROTATE_THIS_KEY"
+      },
+      "bundleIdentifier": "com.anonymous.parker"
+    },
+    "android": {
+      "config": {
+        "googleMaps": {
+          "apiKey": "REDACTED_ROTATE_THIS_KEY"
+        }
+      },
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "package": "com.anonymous.parker"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Parker to access your location to help you find your car."
+        }
+      ]
+    ]
+  }
+}
