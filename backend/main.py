@@ -1,6 +1,8 @@
 import os
 import logging
+import smtplib
 from datetime import datetime
+from email.message import EmailMessage
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -11,6 +13,13 @@ from cachetools import TTLCache
 # --- Configuration & Logging ---
 load_dotenv()
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+SUPPORT_EMAIL_TO = os.getenv("SUPPORT_EMAIL_TO", "")
+SUPPORT_EMAIL_FROM = os.getenv("SUPPORT_EMAIL_FROM", "")
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -86,6 +95,11 @@ class RouteResponse(BaseModel):
     distance_meters: int
     duration_seconds: int
 
+class SupportRequest(BaseModel):
+    name: str
+    email: str
+    message: str
+
 def check_rate_limit(user_id: str):
     # Check minute limit (5 / minute)
     min_count = minute_limits.get(user_id, 0)
@@ -96,6 +110,14 @@ def check_rate_limit(user_id: str):
 
     # Check monthly limits (global and per-user)
     monthly_limiter.check_and_increment(user_id)
+
+def validate_support_config():
+    if not SUPPORT_EMAIL_TO:
+        raise HTTPException(status_code=500, detail="Support email destination is not configured.")
+    if not SUPPORT_EMAIL_FROM:
+        raise HTTPException(status_code=500, detail="Support sender email is not configured.")
+    if not SMTP_HOST or not SMTP_USERNAME or not SMTP_PASSWORD:
+        raise HTTPException(status_code=500, detail="SMTP settings are incomplete on server.")
 
 # --- Endpoints ---
 @app.post("/route", response_model=RouteResponse)
@@ -172,3 +194,46 @@ async def get_route(payload: RouteRequest):
     except (KeyError, IndexError) as e:
         logger.error(f"Unexpected Google API response format: {e}")
         raise HTTPException(status_code=500, detail="Unexpected response format from Google Maps API")
+
+
+@app.post("/support")
+async def submit_support_request(payload: SupportRequest):
+    validate_support_config()
+
+    if len(payload.name.strip()) < 2:
+        raise HTTPException(status_code=400, detail="Please provide a valid name.")
+    if "@" not in payload.email or "." not in payload.email:
+        raise HTTPException(status_code=400, detail="Please provide a valid email address.")
+    if len(payload.message.strip()) < 10:
+        raise HTTPException(status_code=400, detail="Message is too short.")
+
+    email_body = (
+        f"New support request from Parker app\n\n"
+        f"Name: {payload.name.strip()}\n"
+        f"Email: {payload.email.strip()}\n"
+        f"Submitted at: {datetime.utcnow().isoformat()}Z\n\n"
+        f"Message:\n{payload.message.strip()}\n"
+    )
+
+    message = EmailMessage()
+    message["Subject"] = "Parker App Support Request"
+    message["From"] = SUPPORT_EMAIL_FROM
+    message["To"] = SUPPORT_EMAIL_TO
+    message["Reply-To"] = payload.email.strip()
+    message.set_content(email_body)
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as smtp:
+            if SMTP_USE_TLS:
+                smtp.starttls()
+            smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
+            smtp.send_message(message)
+    except Exception as err:
+        logger.error(f"Failed to send support email: {err}")
+        raise HTTPException(status_code=502, detail="Unable to deliver support message right now.")
+
+    logger.info(
+        f"Support request sent: timestamp={datetime.utcnow().isoformat()}Z "
+        f"from={payload.email.strip()}"
+    )
+    return {"success": True}

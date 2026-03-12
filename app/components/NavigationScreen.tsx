@@ -4,6 +4,7 @@ import MapView, { LatLng, Marker, Polyline, PROVIDER_GOOGLE } from 'react-native
 import Constants from 'expo-constants';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, radius, elevation } from '../lib/design-system';
+import { storage } from '../lib/storage';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -16,7 +17,18 @@ type DirectionStep = {
   durationText: string;
 };
 
+type CachedRoutePayload = {
+  destination: Position;
+  points: LatLng[];
+  distanceText: string;
+  durationText: string;
+  steps: DirectionStep[];
+  updatedAt: number;
+};
+
 const WALKING_SPEED_MPS = 1.4;
+const ROUTE_CACHE_KEY = 'last_navigation_route';
+const ROUTE_CACHE_TTL_MS = 1000 * 60 * 10;
 
 function parseDurationSeconds(duration: string | undefined) {
   if (!duration) return 0;
@@ -150,6 +162,54 @@ function normalizeInstruction(instruction: string) {
     .replace(/&quot;/g, '"')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function distanceBetweenPositions(from: Position, to: Position) {
+  return straightLineDistanceMeters(from, to);
+}
+
+function trimRouteFromCurrentPosition(points: LatLng[], current: Position): LatLng[] {
+  if (points.length < 2) return points;
+
+  let nearestIndex = 0;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+
+  points.forEach((point, index) => {
+    const currentDistance = distanceBetweenPositions(current, {
+      lat: point.latitude,
+      lng: point.longitude,
+    });
+
+    if (currentDistance < nearestDistance) {
+      nearestDistance = currentDistance;
+      nearestIndex = index;
+    }
+  });
+
+  return [
+    { latitude: current.lat, longitude: current.lng },
+    ...points.slice(nearestIndex),
+  ];
+}
+
+function deriveHeadingFromRoute(current: Position, points: LatLng[]) {
+  if (points.length < 2) return 0;
+
+  const workingPoints = trimRouteFromCurrentPosition(points, current);
+  const nextPoint = workingPoints[1] || workingPoints[0];
+  if (!nextPoint) return 0;
+
+  const lat1 = (current.lat * Math.PI) / 180;
+  const lat2 = (nextPoint.latitude * Math.PI) / 180;
+  const diffLong = ((nextPoint.longitude - current.lng) * Math.PI) / 180;
+
+  const y = Math.sin(diffLong) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(diffLong);
+
+  const heading = (Math.atan2(y, x) * 180) / Math.PI;
+  return (heading + 360) % 360;
 }
 
 async function getRoute(current: Position, destination: Position) {
@@ -325,6 +385,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -60,
     right: spacing.md,
+    gap: spacing.sm,
+    zIndex: 15,
+  },
+  mapControlButton: {
     width: 56,
     height: 56,
     borderRadius: radius.xl,
@@ -332,9 +396,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...elevation.md,
-    zIndex: 15,
   },
-  recenterIconCenter: {
+  mapControlButtonSecondary: {
+    backgroundColor: colors.neutral[900],
+  },
+  mapControlIconCenter: {
     width: '100%',
     height: '100%',
     alignItems: 'center',
@@ -422,6 +488,8 @@ export function NavigationScreen({
   const currentSheetStateRef = useRef<'min' | 'mid' | 'max'>('min');
   const dynamicMidSheetHeightRef = useRef(MID_SHEET_HEIGHT);
   const dynamicMaxSheetHeightRef = useRef(MAX_SHEET_HEIGHT);
+  const hasLoadedInitialRouteRef = useRef(false);
+  const hasAutoFitRef = useRef(false);
 
   // Entry animation
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
@@ -461,16 +529,39 @@ export function NavigationScreen({
 
   const modeIconName = 'walk';
 
-  const handleRecenter = () => {
-    if (!mapRef.current || !currentPos) return;
-    mapRef.current.animateToRegion(
-      {
-        latitude: currentPos.lat,
-        longitude: currentPos.lng,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
+  const fitRouteOverview = (animated = true) => {
+    if (!mapRef.current || routePoints.length < 2) return;
+
+    const pointsToFit = [...routePoints];
+    if (currentPos) {
+      pointsToFit.push({ latitude: currentPos.lat, longitude: currentPos.lng });
+    }
+
+    pointsToFit.push({ latitude: destination.lat, longitude: destination.lng });
+
+    mapRef.current.fitToCoordinates(pointsToFit, {
+      edgePadding: {
+        top: 96,
+        right: 36,
+        bottom: MIN_SHEET_HEIGHT + 96,
+        left: 36,
       },
-      400
+      animated,
+    });
+  };
+
+  const handleCloseNavigationView = () => {
+    if (!mapRef.current || !currentPos) return;
+
+    const heading = deriveHeadingFromRoute(currentPos, routePoints);
+    mapRef.current.animateCamera(
+      {
+        center: { latitude: currentPos.lat, longitude: currentPos.lng },
+        heading,
+        pitch: 55,
+        zoom: 18,
+      },
+      { duration: 450 }
     );
   };
 
@@ -486,8 +577,8 @@ export function NavigationScreen({
   const initialRegion = useMemo(() => ({
     latitude: destination.lat,
     longitude: destination.lng,
-    latitudeDelta: 0.08,
-    longitudeDelta: 0.08,
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01,
   }), [destination.lat, destination.lng]);
 
   // Entry animation on mount
@@ -501,56 +592,83 @@ export function NavigationScreen({
   }, []);
 
   useEffect(() => {
-    if (!currentPos) return;
+    let isActive = true;
 
     const loadRoute = async () => {
+      if (!currentPos || hasLoadedInitialRouteRef.current) return;
+
+      hasLoadedInitialRouteRef.current = true;
+
       try {
         setLoading(true);
         setRouteError(null);
+
+        const cached = await storage.getItem(ROUTE_CACHE_KEY) as CachedRoutePayload | null;
+        const isCacheValid =
+          !!cached &&
+          Date.now() - cached.updatedAt < ROUTE_CACHE_TTL_MS &&
+          Math.abs(cached.destination.lat - destination.lat) < 0.0001 &&
+          Math.abs(cached.destination.lng - destination.lng) < 0.0001 &&
+          cached.points.length > 1;
+
+        if (isCacheValid && cached) {
+          const adjustedPoints = trimRouteFromCurrentPosition(cached.points, currentPos);
+          if (!isActive) return;
+          setRoutePoints(adjustedPoints);
+          setDistanceText(cached.distanceText);
+          setDurationText(cached.durationText);
+          setSteps(cached.steps);
+          return;
+        }
+
         const route = await getRoute(currentPos, destination);
+        if (!isActive) return;
+
         setRoutePoints(route.points);
         setDistanceText(route.distanceText);
         setDurationText(route.durationText);
         setSteps(route.steps);
+
+        const payload: CachedRoutePayload = {
+          destination,
+          points: route.points,
+          distanceText: route.distanceText,
+          durationText: route.durationText,
+          steps: route.steps,
+          updatedAt: Date.now(),
+        };
+        storage.setItem(ROUTE_CACHE_KEY, payload);
       } catch (err: any) {
+        if (!isActive) return;
         setRoutePoints([]);
         setSteps([]);
         setRouteError(err?.message || 'Unable to load route');
       } finally {
-        setLoading(false);
+        if (isActive) {
+          setLoading(false);
+        }
       }
     };
 
     loadRoute();
+
+    return () => {
+      isActive = false;
+    };
   }, [currentPos, destination]);
 
   useEffect(() => {
-    if (!mapRef.current) return;
-
-    const pointsToFit: LatLng[] = [];
-
-    if (currentPos) {
-      pointsToFit.push({ latitude: currentPos.lat, longitude: currentPos.lng });
-    }
-
-    pointsToFit.push({ latitude: destination.lat, longitude: destination.lng });
-
     if (routePoints.length > 1) {
-      pointsToFit.push(...routePoints);
+      hasAutoFitRef.current = false;
     }
+  }, [routePoints]);
 
-    if (pointsToFit.length >= 2 && routePoints.length > 1) {
-      mapRef.current.fitToCoordinates(pointsToFit, {
-        edgePadding: {
-          top: 140,
-          right: 60,
-          bottom: MIN_SHEET_HEIGHT + 140,
-          left: 60,
-        },
-        animated: true,
-      });
+  useEffect(() => {
+    if (routePoints.length > 1 && !hasAutoFitRef.current) {
+      fitRouteOverview(true);
+      hasAutoFitRef.current = true;
     }
-  }, [currentPos, destination, routePoints]);
+  }, [routePoints]);
 
   // Pan responder for dragging the bottom sheet
   const panResponder = useRef(
@@ -724,11 +842,21 @@ export function NavigationScreen({
           },
         ]}
       >
-        <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}>
-          <View style={styles.recenterIconCenter}>
-            <MaterialCommunityIcons name="target" size={26} color={colors.neutral[0]} />
-          </View>
-        </TouchableOpacity>
+        <View style={styles.recenterButton}>
+          <TouchableOpacity style={styles.mapControlButton} onPress={() => fitRouteOverview(true)}>
+            <View style={styles.mapControlIconCenter}>
+              <MaterialCommunityIcons name="map-marker-path" size={24} color={colors.neutral[0]} />
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.mapControlButton, styles.mapControlButtonSecondary]}
+            onPress={handleCloseNavigationView}
+          >
+            <View style={styles.mapControlIconCenter}>
+              <MaterialCommunityIcons name="navigation-variant" size={24} color={colors.neutral[0]} />
+            </View>
+          </TouchableOpacity>
+        </View>
 
         <View onLayout={(event) => setMetricsSectionHeight(event.nativeEvent.layout.height)}>
           <View {...panResponder.panHandlers}>

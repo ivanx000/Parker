@@ -18,6 +18,7 @@ const styles = StyleSheet.create({
   progressDots: {
     flexDirection: 'row',
     gap: spacing.sm,
+    marginTop: spacing.md,
     marginBottom: spacing.lg,
   },
   dot: {

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Check, Clock, Navigation, AlertTriangle } from 'lucide-react-native';
-import { Card } from './Card';
+import { CheckIcon, ClockIcon, MapPinIcon, ExclamationTriangleIcon } from 'react-native-heroicons/outline';
 import { ParkingSpot } from '../types/parking';
 import { formatDistance } from '../lib/location';
 import { colors, spacing, typography, radius } from '../lib/design-system';
@@ -9,6 +8,8 @@ import { colors, spacing, typography, radius } from '../lib/design-system';
 const styles = StyleSheet.create({
   container: {
     width: '100%',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
   content: {
     gap: spacing.sm,
@@ -17,9 +18,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-  },
-  distanceRow: {
-    marginLeft: -2,
   },
   rowIcon: {
     width: 20,
@@ -72,24 +70,23 @@ export function StatusCard({ spot, distance }: { spot: ParkingSpot, distance: nu
   }, []);
 
   return (
-    <Card>
       <View style={styles.container}>
         <View style={styles.content}>
           <View style={styles.row}>
             <View style={styles.rowIcon}>
-              <Check size={18} color={colors.success.default} strokeWidth={3} />
+              <CheckIcon size={18} color={colors.brand[500]} strokeWidth={3} />
             </View>
             <Text style={styles.titleText}>Saved successfully</Text>
           </View>
           <View style={styles.row}>
             <View style={styles.rowIcon}>
-              <Clock size={16} color={colors.info.default} />
+              <ClockIcon size={16} color={colors.brand[500]} />
             </View>
             <Text style={styles.rowText}>{`Saved ${formatTimeAgo(spot.savedAtISO)}`}</Text>
           </View>
-          <View style={[styles.row, styles.distanceRow]}>
+          <View style={styles.row}>
             <View style={styles.rowIcon}>
-              <Navigation size={16} color={colors.brand[500]} style={{ transform: [{ rotate: '45deg' }] }} />
+              <MapPinIcon size={16} color={colors.brand[500]} />
             </View>
             <Text style={styles.rowText}>{distance !== null ? formatDistance(distance) : 'Calculating...'}</Text>
           </View>
@@ -97,13 +94,12 @@ export function StatusCard({ spot, distance }: { spot: ParkingSpot, distance: nu
 
         {spot.accuracyMeters > 50 && (
           <View style={styles.warningBox}>
-            <AlertTriangle size={18} color={colors.warning.dark} />
+            <ExclamationTriangleIcon size={18} color={colors.brand[500]} />
             <Text style={styles.warningText}>
               GPS accuracy was low (±{Math.round(spot.accuracyMeters)}m). Your saved location might be slightly off.
             </Text>
           </View>
         )}
       </View>
-    </Card>
   );
 }

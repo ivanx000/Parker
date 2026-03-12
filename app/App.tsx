@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, ScrollView, TouchableOpacity, Modal, StyleSheet, Text, Animated, Easing, Alert } from 'react-native';
+import { View, ScrollView, TouchableOpacity, Pressable, Modal, StyleSheet, Text, Animated, Easing, Alert, AppState, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { MapPin, Settings, Info, X, Crown, Zap, CheckCircle2, AlertCircle, Check, Home } from 'lucide-react-native';
+import { MapPinIcon, ExclamationCircleIcon, CheckIcon, HomeIcon as HomeOutlineIcon, Cog6ToothIcon as SettingsOutlineIcon } from 'react-native-heroicons/outline';
+import { HomeIcon as HomeSolidIcon, Cog6ToothIcon as SettingsSolidIcon } from 'react-native-heroicons/solid';
 
 import { Screen } from './components/Screen';
 import { PrimaryButton } from './components/PrimaryButton';
@@ -34,6 +35,32 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  homeScreenContent: {
+    backgroundColor: 'transparent',
+  },
+  gridBackground: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  gridLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  gridVerticalLine: {
+    position: 'absolute',
+    top: -spacing.xl,
+    bottom: -spacing.xl,
+    width: 1,
+    backgroundColor: colors.neutral[200],
+    opacity: 0.35,
+  },
+  gridHorizontalLine: {
+    position: 'absolute',
+    left: -spacing.xl,
+    right: -spacing.xl,
+    height: 1,
+    backgroundColor: colors.neutral[200],
+    opacity: 0.35,
   },
   emptyView: {
     flexDirection: 'column',
@@ -80,30 +107,36 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
     borderTopWidth: layout.borderWidth.thin,
-    borderTopColor: colors.neutral[200],
-    backgroundColor: colors.neutral[0],
+    borderTopColor: colors.brand[600],
+    backgroundColor: colors.brand[500],
   },
   navButton: {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
     flex: 1,
+  },
+  navButtonPressed: {
+    transform: [{ scale: 1.08 }],
+  },
+  navIconWrap: {
+    marginTop: spacing.sm,
   },
   navButtonText: {
     ...typography.label,
     fontSize: 10,
   },
   navButtonActive: {
-    color: colors.brand[500],
+    color: colors.neutral[0],
   },
   navButtonInactive: {
-    color: colors.neutral[500],
+    color: colors.neutral[0],
   },
   modalOverlay: {
     flex: 1,
@@ -175,12 +208,18 @@ const styles = StyleSheet.create({
   },
 });
 
+const ROUTE_CACHE_KEY = 'last_navigation_route';
+const ROUTE_CACHE_TTL_MS = 1000 * 60 * 10;
+
 
 export default function App() {
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { spot, currentPos, distance, isSaving, error, saveSuccess, saveSpot, clearSpot } = useParkingSpot();
   const { tier, usage, limit, decrementSession, updateTier } = useNavigationLimit();
   const checkRevealAnim = useRef(new Animated.Value(0)).current;
   const buttonSuccessAnim = useRef(new Animated.Value(1)).current;
+  const gridTranslateX = useRef(new Animated.Value(0)).current;
+  const gridTranslateY = useRef(new Animated.Value(0)).current;
   const [showPaywall, setShowPaywall] = useState(false);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
   const [currentScreen, setCurrentScreen] = useState<'home' | 'settings' | 'navigation'>('home');
@@ -194,6 +233,37 @@ export default function App() {
   });
   const [billingBusy, setBillingBusy] = useState(false);
   const [billingMessage, setBillingMessage] = useState<string | null>(null);
+  const screenTranslateX = useRef(new Animated.Value(0)).current;
+  const [isScreenTransitioning, setIsScreenTransitioning] = useState(false);
+  const [screenTransitionTarget, setScreenTransitionTarget] = useState<'home' | 'settings' | null>(null);
+
+  useEffect(() => {
+    const gridOffset = spacing.lg;
+    const xLoop = Animated.loop(
+      Animated.timing(gridTranslateX, {
+        toValue: -gridOffset,
+        duration: 12000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    const yLoop = Animated.loop(
+      Animated.timing(gridTranslateY, {
+        toValue: -gridOffset,
+        duration: 17000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+
+    xLoop.start();
+    yLoop.start();
+
+    return () => {
+      xLoop.stop();
+      yLoop.stop();
+    };
+  }, [gridTranslateX, gridTranslateY]);
 
   useEffect(() => {
     storage.getItem('onboarding_complete').then(seen => {
@@ -264,10 +334,55 @@ export default function App() {
     outputRange: [0, 0.8, 1],
   });
 
-  const handleNavigate = () => {
+  const gridSize = spacing.xl + spacing.sm;
+  const verticalLineCount = Math.ceil(windowWidth / gridSize) + 3;
+  const horizontalLineCount = Math.ceil(windowHeight / gridSize) + 3;
+  const verticalLines = Array.from({ length: verticalLineCount }, (_, index) => index);
+  const horizontalLines = Array.from({ length: horizontalLineCount }, (_, index) => index);
+
+  const navigateTo = (screen: 'home' | 'settings') => {
+    if (currentScreen === screen || isScreenTransitioning) return;
+
+    const direction = screen === 'settings' ? 1 : -1;
+    setScreenTransitionTarget(screen);
+    setIsScreenTransitioning(true);
+
+    Animated.timing(screenTranslateX, {
+      toValue: direction * -windowWidth,
+      duration: 120,
+      useNativeDriver: true,
+      easing: Easing.out(Easing.ease),
+    }).start(() => {
+      setCurrentScreen(screen);
+      screenTranslateX.setValue(direction * windowWidth);
+
+      Animated.timing(screenTranslateX, {
+        toValue: 0,
+        duration: 120,
+        useNativeDriver: true,
+        easing: Easing.in(Easing.ease),
+      }).start(() => {
+        setIsScreenTransitioning(false);
+        setScreenTransitionTarget(null);
+      });
+    });
+  };
+
+  const handleNavigate = async () => {
     if (!spot) return;
-    
-    if (!decrementSession()) {
+
+    const cachedRoute = await storage.getItem(ROUTE_CACHE_KEY) as {
+      destination: { lat: number; lng: number };
+      updatedAt: number;
+    } | null;
+
+    const canReuseCachedRoute =
+      !!cachedRoute &&
+      Date.now() - cachedRoute.updatedAt < ROUTE_CACHE_TTL_MS &&
+      Math.abs(cachedRoute.destination.lat - spot.lat) < 0.0001 &&
+      Math.abs(cachedRoute.destination.lng - spot.lng) < 0.0001;
+
+    if (!canReuseCachedRoute && !decrementSession()) {
       setShowPaywall(true);
       return;
     }
@@ -395,6 +510,16 @@ export default function App() {
     refreshBilling();
   }, []);
 
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        refreshBilling();
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
+
   if (hasSeenOnboarding === null) {
     return null; // Loading state
   }
@@ -416,15 +541,45 @@ export default function App() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.neutral[50] }}>
+      {currentScreen === 'home' && (
+        <View pointerEvents="none" style={styles.gridBackground}>
+          <Animated.View
+            style={[
+              styles.gridLayer,
+              {
+                transform: [
+                  { translateX: gridTranslateX },
+                  { translateY: gridTranslateY },
+                ],
+              },
+            ]}
+          >
+            {verticalLines.map((line) => (
+              <View
+                key={`v-${line}`}
+                style={[styles.gridVerticalLine, { left: line * gridSize }]}
+              />
+            ))}
+            {horizontalLines.map((line) => (
+              <View
+                key={`h-${line}`}
+                style={[styles.gridHorizontalLine, { top: line * gridSize }]}
+              />
+            ))}
+          </Animated.View>
+        </View>
+      )}
+
       <Screen 
-        fullWidth={currentScreen === 'settings' || currentScreen === 'navigation'}
-        noPadding={currentScreen === 'navigation'}
+        fullWidth={currentScreen === 'home' || currentScreen === 'settings' || currentScreen === 'navigation'}
+        noPadding={currentScreen === 'home' || currentScreen === 'navigation'}
       >
         <View style={styles.container}>
           {/* Main Content Area */}
           <View style={styles.contentContainer}>
+            <Animated.View style={{ flex: 1, transform: [{ translateX: screenTranslateX }] }}>
             {currentScreen === 'home' ? (
-              <View style={styles.screenContent}>
+              <View style={[styles.screenContent, styles.homeScreenContent]}>
                 {!spot ? (
                   <View style={styles.emptyView}>
                     <Text style={styles.noSpotText}>No parking spot saved</Text>
@@ -443,10 +598,10 @@ export default function App() {
                               transform: [{ scale: checkScale }],
                             }}
                           >
-                            <Check size={64} color={colors.neutral[0]} strokeWidth={3.5} />
+                            <CheckIcon size={64} color={colors.neutral[0]} strokeWidth={3.5} />
                           </Animated.View>
                         ) : (
-                          <MapPin size={56} color={colors.neutral[0]} strokeWidth={1.5} />
+                          <MapPinIcon size={56} color={colors.neutral[0]} strokeWidth={1.5} />
                         )
                       }
                     >
@@ -455,7 +610,7 @@ export default function App() {
 
                     {error && (
                       <View style={styles.errorText}>
-                        <AlertCircle size={16} color={colors.warning.default} />
+                        <ExclamationCircleIcon size={16} color={colors.warning.default} />
                         <Text style={{ color: colors.warning.default, marginLeft: spacing.xs }}>{error}</Text>
                       </View>
                     )}
@@ -466,7 +621,6 @@ export default function App() {
 
                     <PrimaryButton 
                       onPress={handleNavigate}
-                      icon={<MapPin size={20} color={colors.neutral[0]} />}
                     >
                       Take Me To My Car
                     </PrimaryButton>
@@ -497,13 +651,12 @@ export default function App() {
                 billingStatus={billingStatus}
                 billingBusy={billingBusy}
                 billingMessage={billingMessage}
-                onRestartOnboarding={() => {
-                  storage.removeItem('onboarding_complete');
-                  setHasSeenOnboarding(false);
-                  setCurrentScreen('home');
+                onRefreshBilling={async () => {
+                  await refreshBilling();
                 }}
               />
             )}
+            </Animated.View>
           </View>
         </View>
       </Screen>
@@ -511,21 +664,41 @@ export default function App() {
       {/* Bottom Nav Bar - Fixed at bottom (hidden in navigation mode) */}
       {currentScreen !== 'navigation' && (
         <SafeAreaView style={styles.bottomBar}>
-          <TouchableOpacity 
-            style={styles.navButton}
-            onPress={() => setCurrentScreen('home')}
+          <Pressable
+            style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}
+            onPress={() => navigateTo('home')}
           >
-            <Home size={24} color={currentScreen === 'home' ? colors.brand[500] : colors.neutral[500]} strokeWidth={currentScreen === 'home' ? 2 : 1.5} />
-            <Text style={[styles.navButtonText, currentScreen === 'home' ? styles.navButtonActive : styles.navButtonInactive]}>Home</Text>
-          </TouchableOpacity>
+            {({ pressed }) => (
+              <>
+                <View style={styles.navIconWrap}>
+                  {currentScreen === 'home' || screenTransitionTarget === 'home' || pressed ? (
+                    <HomeSolidIcon size={22} color={colors.neutral[0]} />
+                  ) : (
+                    <HomeOutlineIcon size={22} color={colors.neutral[0]} strokeWidth={1.6} />
+                  )}
+                </View>
+                <Text style={[styles.navButtonText, currentScreen === 'home' ? styles.navButtonActive : styles.navButtonInactive]}>Home</Text>
+              </>
+            )}
+          </Pressable>
 
-          <TouchableOpacity 
-            style={styles.navButton}
-            onPress={() => setCurrentScreen('settings')}
+          <Pressable
+            style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}
+            onPress={() => navigateTo('settings')}
           >
-            <Settings size={24} color={currentScreen === 'settings' ? colors.brand[500] : colors.neutral[500]} strokeWidth={currentScreen === 'settings' ? 2 : 1.5} />
-            <Text style={[styles.navButtonText, currentScreen === 'settings' ? styles.navButtonActive : styles.navButtonInactive]}>Settings</Text>
-          </TouchableOpacity>
+            {({ pressed }) => (
+              <>
+                <View style={styles.navIconWrap}>
+                  {currentScreen === 'settings' || screenTransitionTarget === 'settings' || pressed ? (
+                    <SettingsSolidIcon size={22} color={colors.neutral[0]} />
+                  ) : (
+                    <SettingsOutlineIcon size={22} color={colors.neutral[0]} strokeWidth={1.6} />
+                  )}
+                </View>
+                <Text style={[styles.navButtonText, currentScreen === 'settings' ? styles.navButtonActive : styles.navButtonInactive]}>Settings</Text>
+              </>
+            )}
+          </Pressable>
         </SafeAreaView>
       )}
 

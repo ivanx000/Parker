@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, ScrollView, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
-import { Crown, CheckCircle2 } from 'lucide-react-native';
+import { SparklesIcon } from 'react-native-heroicons/solid';
+import { CheckCircleIcon } from 'react-native-heroicons/outline';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { SubscriptionTier } from '../../types/parking';
 import { requestLocationPermission } from '../../lib/location';
@@ -20,6 +21,7 @@ const styles = StyleSheet.create({
   progressDots: {
     flexDirection: 'row',
     gap: spacing.sm,
+    marginTop: spacing.md,
     marginBottom: spacing.lg,
   },
   dot: {
@@ -224,13 +226,13 @@ export default function PaywallScreen({
                     <Text style={{ ...typography.bodyBold, color: colors.neutral[950] }}>
                       {t}
                     </Text>
-                    {t === 'Pro' && <Crown size={16} color={colors.brand[500]} style={{ marginLeft: spacing.sm }} />}
+                    {t === 'Pro' && <SparklesIcon size={16} color={colors.brand[500]} style={{ marginLeft: spacing.sm }} />}
                   </View>
                   <Text style={styles.tierDescription}>
                     {t === 'Free' ? '10 uses/mo' : 'Unlimited uses'}
                   </Text>
                 </View>
-                {selectedTier === t && <CheckCircle2 size={24} color={colors.brand[500]} />}
+                {selectedTier === t && <CheckCircleIcon size={24} color={colors.brand[500]} />}
               </TouchableOpacity>
             </Animated.View>
           ))}

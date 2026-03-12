@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { MapPin, Navigation, Map } from 'lucide-react-native';
+import { MapPinIcon, PaperAirplaneIcon, MapIcon } from 'react-native-heroicons/outline';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { colors, spacing, typography, radius, layout, elevation } from '../../lib/design-system';
 
@@ -18,6 +18,7 @@ const styles = StyleSheet.create({
   progressDots: {
     flexDirection: 'row',
     gap: spacing.sm,
+    marginTop: spacing.md,
     marginBottom: spacing.lg,
   },
   dot: {
@@ -176,7 +177,7 @@ export default function FeaturesScreen({ onNext }: { onNext: () => void }) {
             ]}
           >
             <View style={styles.featureIcon}>
-              <MapPin size={24} color={colors.neutral[0]} strokeWidth={1.5} />
+              <MapPinIcon size={24} color={colors.neutral[0]} strokeWidth={1.5} />
             </View>
             <View style={styles.featureContent}>
               <Text style={styles.featureTitle}>Save Your Spot Instantly</Text>
@@ -195,7 +196,7 @@ export default function FeaturesScreen({ onNext }: { onNext: () => void }) {
           >
             <View style={styles.featureIcon}>
               <View style={styles.iconCenterWrap}>
-                <Navigation size={22} color={colors.neutral[0]} strokeWidth={1.75} />
+                <PaperAirplaneIcon size={22} color={colors.neutral[0]} strokeWidth={1.75} />
               </View>
             </View>
             <View style={styles.featureContent}>
@@ -214,7 +215,7 @@ export default function FeaturesScreen({ onNext }: { onNext: () => void }) {
             ]}
           >
             <View style={styles.featureIcon}>
-              <Map size={24} color={colors.neutral[0]} strokeWidth={1.5} />
+              <MapIcon size={24} color={colors.neutral[0]} strokeWidth={1.5} />
             </View>
             <View style={styles.featureContent}>
               <Text style={styles.featureTitle}>Never Forget Again</Text>

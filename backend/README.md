@@ -4,6 +4,7 @@ A production-ready FastAPI backend for the Parker mobile app.
 
 ## Features
 - `POST /route` endpoint to fetch directions
+- `POST /support` endpoint to send Help & Support form submissions via email
 - Integrates with Google Directions API
 - In-memory caching (5 minutes) for identical origin/destination pairs
 - Rate limiting (5 requests/minute, 200 requests/month per `user_id`)
@@ -28,11 +29,19 @@ A production-ready FastAPI backend for the Parker mobile app.
    ```
 
 4. **Configure Environment Variables:**
-   Copy the example environment file and add your Google Maps API key.
+   Copy the example environment file and configure Google Maps + support email settings.
    ```bash
    cp .env.example .env
    ```
-   Open `.env` and replace `your_google_maps_api_key_here` with your actual API key.
+   Required variables:
+   - `GOOGLE_MAPS_API_KEY`
+   - `SUPPORT_EMAIL_TO`
+   - `SUPPORT_EMAIL_FROM`
+   - `SMTP_HOST`
+   - `SMTP_PORT`
+   - `SMTP_USERNAME`
+   - `SMTP_PASSWORD`
+   - `SMTP_USE_TLS`
 
 5. **Run the server:**
    ```bash
@@ -55,3 +64,14 @@ A production-ready FastAPI backend for the Parker mobile app.
               "user_id": "user_123"
             }'
    ```
+
+    Support endpoint example:
+    ```bash
+    curl -X POST "http://localhost:8000/support" \
+            -H "Content-Type: application/json" \
+            -d '{
+                     "name": "Jane Doe",
+                     "email": "jane@example.com",
+                     "message": "I need help with subscription billing."
+                  }'
+    ```

@@ -1,4 +1,5 @@
 import * as Location from 'expo-location';
+import { Linking } from 'react-native';
 
 export function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371e3;
@@ -27,6 +28,26 @@ export async function requestLocationPermission(): Promise<boolean> {
     return status === 'granted';
   } catch (err) {
     console.error('Error requesting location permission:', err);
+    return false;
+  }
+}
+
+export async function getLocationPermissionStatus(): Promise<Location.PermissionStatus | null> {
+  try {
+    const { status } = await Location.getForegroundPermissionsAsync();
+    return status;
+  } catch (err) {
+    console.error('Error checking location permission:', err);
+    return null;
+  }
+}
+
+export async function openAppPermissionSettings(): Promise<boolean> {
+  try {
+    await Linking.openSettings();
+    return true;
+  } catch (err) {
+    console.error('Error opening app settings:', err);
     return false;
   }
 }

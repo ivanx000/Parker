@@ -15,7 +15,7 @@ import {
   ActivityIndicator,
   Platform
 } from 'react-native';
-import { X } from 'lucide-react-native';
+import { XMarkIcon } from 'react-native-heroicons/outline';
 import RevenueCatUI, { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import Purchases from 'react-native-purchases';
 import { colors, spacing, typography, radius } from '../lib/design-system';
@@ -92,7 +92,8 @@ export function RevenueCatPaywall({
           try {
             await onPurchaseCompleted();
           } catch (error) {
-            console.error('[Paywall] Error in purchase completed callback:', error);
+            const message = (error as any)?.message || 'Purchase callback failed';
+            console.error(`[Paywall] Error in purchase completed callback: ${message}`);
           }
         }
         onClose();
@@ -105,7 +106,8 @@ export function RevenueCatPaywall({
           try {
             await onRestoreCompleted();
           } catch (error) {
-            console.error('[Paywall] Error in restore completed callback:', error);
+            const message = (error as any)?.message || 'Restore callback failed';
+            console.error(`[Paywall] Error in restore completed callback: ${message}`);
           }
         }
         onClose();
@@ -129,8 +131,8 @@ export function RevenueCatPaywall({
         setError('Unable to complete purchase. Please try again.');
       }
     } catch (err: any) {
-      console.error('[Paywall] Error:', err);
       const message = String(err?.message || '');
+      console.error(`[Paywall] Error: ${message || 'Failed to present paywall'}`);
       const isBrowserPreviewError =
         message.includes('document is not available') ||
         message.includes('browser environment');
@@ -182,7 +184,7 @@ export function RevenueCatPaywall({
             style={styles.closeButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <X size={24} color={colors.neutral[900]} />
+            <XMarkIcon size={24} color={colors.neutral[900]} />
           </TouchableOpacity>
         </View>
 

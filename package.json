@@ -11,8 +11,8 @@
     "dev:web": "npm --prefix app run web",
     "backend": "cd backend && python main.py",
     "lint": "npm --prefix app run lint",
-    "android": "expo run:android",
-    "ios": "expo run:ios"
+    "android": "npm --prefix app run android",
+    "ios": "npm --prefix app run ios"
   },
   "dependencies": {
     "expo": "~54.0.33",

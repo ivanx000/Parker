@@ -13,10 +13,9 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   ActivityIndicator,
-  Alert,
   Platform
 } from 'react-native';
-import { X, Settings as SettingsIcon } from 'lucide-react-native';
+import { XMarkIcon, Cog6ToothIcon as SettingsIcon } from 'react-native-heroicons/outline';
 import RevenueCatUI from 'react-native-purchases-ui';
 import { colors, spacing, typography, radius } from '../lib/design-system';
 import { isRevenueCatConfigured } from '../lib/revenuecat';
@@ -51,8 +50,9 @@ export function CustomerCenter({
       }
       onClose();
     } catch (err: any) {
-      console.error('[Customer Center] Error:', err);
-      setError(err?.message || 'Failed to load subscription details');
+      const message = err?.message || 'Failed to load subscription details';
+      console.error(`[Customer Center] ${message}`);
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -83,7 +83,7 @@ export function CustomerCenter({
             style={styles.closeButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <X size={24} color={colors.neutral[900]} />
+            <XMarkIcon size={24} color={colors.neutral[900]} />
           </TouchableOpacity>
         </View>
 
