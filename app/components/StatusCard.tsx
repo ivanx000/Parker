@@ -12,15 +12,15 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   content: {
-    gap: spacing.sm,
+    gap: spacing.sm + 2,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.sm + 2,
   },
   rowIcon: {
-    width: 20,
+    width: 24,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -74,19 +74,19 @@ export function StatusCard({ spot, distance }: { spot: ParkingSpot, distance: nu
         <View style={styles.content}>
           <View style={styles.row}>
             <View style={styles.rowIcon}>
-              <CheckIcon size={18} color={colors.brand[500]} strokeWidth={3} />
+              <CheckIcon size={20} color={colors.brand[500]} strokeWidth={3} />
             </View>
             <Text style={styles.titleText}>Saved successfully</Text>
           </View>
           <View style={styles.row}>
             <View style={styles.rowIcon}>
-              <ClockIcon size={16} color={colors.brand[500]} />
+              <ClockIcon size={18} color={colors.brand[500]} />
             </View>
             <Text style={styles.rowText}>{`Saved ${formatTimeAgo(spot.savedAtISO)}`}</Text>
           </View>
           <View style={styles.row}>
             <View style={styles.rowIcon}>
-              <MapPinIcon size={16} color={colors.brand[500]} />
+              <MapPinIcon size={18} color={colors.brand[500]} />
             </View>
             <Text style={styles.rowText}>{distance !== null ? formatDistance(distance) : 'Calculating...'}</Text>
           </View>
