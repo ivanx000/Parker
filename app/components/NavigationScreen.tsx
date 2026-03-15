@@ -383,18 +383,21 @@ const styles = StyleSheet.create({
   },
   recenterButton: {
     position: 'absolute',
-    top: -60,
+    top: -54,
     right: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
     zIndex: 15,
   },
   mapControlButton: {
-    width: 56,
-    height: 56,
+    minHeight: 44,
     borderRadius: radius.xl,
     backgroundColor: colors.brand[500],
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     ...elevation.md,
   },
   mapControlButtonSecondary: {
@@ -405,6 +408,11 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  mapControlButtonText: {
+    ...typography.smallBold,
+    color: colors.neutral[0],
+    letterSpacing: 0.2,
   },
   stepsSection: {
     marginTop: spacing.sm,
@@ -844,17 +852,13 @@ export function NavigationScreen({
       >
         <View style={styles.recenterButton}>
           <TouchableOpacity style={styles.mapControlButton} onPress={() => fitRouteOverview(true)}>
-            <View style={styles.mapControlIconCenter}>
-              <MaterialCommunityIcons name="map-marker-path" size={24} color={colors.neutral[0]} />
-            </View>
+            <Text style={styles.mapControlButtonText}>View Entire Route</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.mapControlButton, styles.mapControlButtonSecondary]}
             onPress={handleCloseNavigationView}
           >
-            <View style={styles.mapControlIconCenter}>
-              <MaterialCommunityIcons name="navigation-variant" size={24} color={colors.neutral[0]} />
-            </View>
+            <Text style={styles.mapControlButtonText}>Street view</Text>
           </TouchableOpacity>
         </View>
 

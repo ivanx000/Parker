@@ -182,6 +182,12 @@ npm run backend       # Start FastAPI backend
 npm run lint          # TypeScript type check (app/)
 ```
 
+## Important Workflow Note
+
+- This repo's mobile app lives in `app/`.
+- Run Expo through root proxy scripts (`npm run dev`, `npm run dev:ios`, `npm run dev:android`) or run Expo commands from inside `app/`.
+- Do **not** run Expo commands from repo root directly (for example `npx expo run:ios` at root), because that can generate/use the wrong native project and cause build errors.
+
 ---
 
 ## Subscription Tiers
