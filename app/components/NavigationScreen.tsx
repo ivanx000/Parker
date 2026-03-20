@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, Animated, Dimensions, PanResponder } from 'react-native';
-import MapView, { LatLng, Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { LatLng, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapViewDirections from 'react-native-maps-directions';
 import Constants from 'expo-constants';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors, spacing, typography, radius, elevation } from '../lib/design-system';
@@ -19,22 +20,14 @@ type DirectionStep = {
 
 type CachedRoutePayload = {
   destination: Position;
-  points: LatLng[];
   distanceText: string;
   durationText: string;
-  steps: DirectionStep[];
   updatedAt: number;
 };
 
 const WALKING_SPEED_MPS = 1.4;
 const ROUTE_CACHE_KEY = 'last_navigation_route';
 const ROUTE_CACHE_TTL_MS = 1000 * 60 * 10;
-
-function parseDurationSeconds(duration: string | undefined) {
-  if (!duration) return 0;
-  const value = parseInt(duration.replace('s', ''), 10);
-  return Number.isFinite(value) ? value : 0;
-}
 
 function formatDistance(distanceMeters: number) {
   if (distanceMeters >= 1000) {
@@ -102,47 +95,6 @@ function getDirectionIcon(instruction: string): string {
   return 'arrow-right';
 }
 
-function decodePolyline(encoded: string): LatLng[] {
-  const points: LatLng[] = [];
-  let index = 0;
-  let lat = 0;
-  let lng = 0;
-
-  while (index < encoded.length) {
-    let shift = 0;
-    let result = 0;
-    let byte: number;
-
-    do {
-      byte = encoded.charCodeAt(index++) - 63;
-      result |= (byte & 0x1f) << shift;
-      shift += 5;
-    } while (byte >= 0x20);
-
-    const deltaLat = (result & 1) ? ~(result >> 1) : (result >> 1);
-    lat += deltaLat;
-
-    shift = 0;
-    result = 0;
-
-    do {
-      byte = encoded.charCodeAt(index++) - 63;
-      result |= (byte & 0x1f) << shift;
-      shift += 5;
-    } while (byte >= 0x20);
-
-    const deltaLng = (result & 1) ? ~(result >> 1) : (result >> 1);
-    lng += deltaLng;
-
-    points.push({
-      latitude: lat / 1e5,
-      longitude: lng / 1e5,
-    });
-  }
-
-  return points;
-}
-
 function getGoogleMapsApiKey() {
   return (
     process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
@@ -151,17 +103,6 @@ function getGoogleMapsApiKey() {
     (Constants.expoConfig?.android?.config as any)?.googleMaps?.apiKey ||
     ''
   );
-}
-
-function normalizeInstruction(instruction: string) {
-  return instruction
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&#39;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/\s+/g, ' ')
-    .trim();
 }
 
 function distanceBetweenPositions(from: Position, to: Position) {
@@ -212,75 +153,6 @@ function deriveHeadingFromRoute(current: Position, points: LatLng[]) {
   return (heading + 360) % 360;
 }
 
-async function getRoute(current: Position, destination: Position) {
-  const apiKey = getGoogleMapsApiKey();
-  if (!apiKey) {
-    throw new Error('Missing Google Maps API key for directions');
-  }
-
-  const response = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Goog-Api-Key': apiKey,
-      'X-Goog-FieldMask': '*',
-    },
-    body: JSON.stringify({
-      origin: {
-        location: {
-          latLng: {
-            latitude: current.lat,
-            longitude: current.lng,
-          },
-        },
-      },
-      destination: {
-        location: {
-          latLng: {
-            latitude: destination.lat,
-            longitude: destination.lng,
-          },
-        },
-      },
-      travelMode: 'WALK',
-      computeAlternativeRoutes: false,
-    }),
-  });
-
-  const data = await response.json();
-
-  if (!data.routes?.length) {
-    throw new Error(data.error?.message || 'Unable to load route');
-  }
-
-  const route = data.routes[0];
-  const leg = route.legs?.[0];
-  const steps: DirectionStep[] = [];
-  
-  if (leg?.steps) {
-    leg.steps.forEach((step: any) => {
-      const distanceMeters = step.distanceMeters || 0;
-      const durationSeconds = parseDurationSeconds(step.duration || step.staticDuration);
-      
-      steps.push({
-        instruction: normalizeInstruction(step.navigationInstruction?.instructions || ''),
-        distanceText: formatDistance(distanceMeters),
-        durationText: formatDuration(durationSeconds),
-      });
-    });
-  }
-
-  // Format total distance and duration
-  const totalDistanceMeters = leg?.distanceMeters || route.distanceMeters || 0;
-  const totalDurationSeconds = parseDurationSeconds(route.duration || leg?.duration || leg?.staticDuration);
-
-  return {
-    points: decodePolyline(route.polyline?.encodedPolyline || ''),
-    distanceText: formatDistance(totalDistanceMeters),
-    durationText: formatDuration(totalDurationSeconds),
-    steps,
-  };
-}
 
 const MIN_SHEET_HEIGHT = 90; // Minimized with basic info
 const MID_SHEET_HEIGHT = 220;
@@ -496,8 +368,8 @@ export function NavigationScreen({
   const currentSheetStateRef = useRef<'min' | 'mid' | 'max'>('min');
   const dynamicMidSheetHeightRef = useRef(MID_SHEET_HEIGHT);
   const dynamicMaxSheetHeightRef = useRef(MAX_SHEET_HEIGHT);
-  const hasLoadedInitialRouteRef = useRef(false);
   const hasAutoFitRef = useRef(false);
+  const googleMapsApiKey = getGoogleMapsApiKey();
 
   // Entry animation
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
@@ -602,63 +474,26 @@ export function NavigationScreen({
   useEffect(() => {
     let isActive = true;
 
-    const loadRoute = async () => {
-      if (!currentPos || hasLoadedInitialRouteRef.current) return;
+    const loadCachedRouteMeta = async () => {
+      const cached = await storage.getItem<CachedRoutePayload>(ROUTE_CACHE_KEY);
+      if (!isActive || !cached) return;
 
-      hasLoadedInitialRouteRef.current = true;
+      const isCacheValid =
+        Date.now() - cached.updatedAt < ROUTE_CACHE_TTL_MS &&
+        Math.abs(cached.destination.lat - destination.lat) < 0.0001 &&
+        Math.abs(cached.destination.lng - destination.lng) < 0.0001;
 
-      try {
-        setLoading(true);
-        setRouteError(null);
+      if (!isCacheValid) return;
 
-        const cached = await storage.getItem(ROUTE_CACHE_KEY) as CachedRoutePayload | null;
-        const isCacheValid =
-          !!cached &&
-          Date.now() - cached.updatedAt < ROUTE_CACHE_TTL_MS &&
-          Math.abs(cached.destination.lat - destination.lat) < 0.0001 &&
-          Math.abs(cached.destination.lng - destination.lng) < 0.0001 &&
-          cached.points.length > 1;
-
-        if (isCacheValid && cached) {
-          const adjustedPoints = trimRouteFromCurrentPosition(cached.points, currentPos);
-          if (!isActive) return;
-          setRoutePoints(adjustedPoints);
-          setDistanceText(cached.distanceText);
-          setDurationText(cached.durationText);
-          setSteps(cached.steps);
-          return;
-        }
-
-        const route = await getRoute(currentPos, destination);
-        if (!isActive) return;
-
-        setRoutePoints(route.points);
-        setDistanceText(route.distanceText);
-        setDurationText(route.durationText);
-        setSteps(route.steps);
-
-        const payload: CachedRoutePayload = {
-          destination,
-          points: route.points,
-          distanceText: route.distanceText,
-          durationText: route.durationText,
-          steps: route.steps,
-          updatedAt: Date.now(),
-        };
-        storage.setItem(ROUTE_CACHE_KEY, payload);
-      } catch (err: any) {
-        if (!isActive) return;
-        setRoutePoints([]);
-        setSteps([]);
-        setRouteError(err?.message || 'Unable to load route');
-      } finally {
-        if (isActive) {
-          setLoading(false);
-        }
-      }
+      setDistanceText(cached.distanceText);
+      setDurationText(cached.durationText);
     };
 
-    loadRoute();
+    loadCachedRouteMeta();
+
+    if (!googleMapsApiKey) {
+      setRouteError('Missing Google Maps API key for directions');
+    }
 
     return () => {
       isActive = false;
@@ -820,11 +655,48 @@ export function NavigationScreen({
           pinColor={colors.success.default}
         />
 
-        {routePoints.length > 1 ? (
-          <Polyline
-            coordinates={routePoints}
+        {currentPos && googleMapsApiKey ? (
+          <MapViewDirections
+            origin={{ latitude: currentPos.lat, longitude: currentPos.lng }}
+            destination={{ latitude: destination.lat, longitude: destination.lng }}
+            apikey={googleMapsApiKey}
+            mode="WALKING"
             strokeColor={colors.brand[500]}
             strokeWidth={5}
+            resetOnChange={false}
+            onStart={() => {
+              setLoading(true);
+              setRouteError(null);
+            }}
+            onReady={(result: any) => {
+              setLoading(false);
+              setRouteError(null);
+
+              const coordinates = (result?.coordinates || []) as LatLng[];
+              const adjustedPoints = trimRouteFromCurrentPosition(coordinates, currentPos);
+              setRoutePoints(adjustedPoints);
+
+              const mappedDistanceText = formatDistance((result?.distance || 0) * 1000);
+              const mappedDurationText = formatDuration(Math.round((result?.duration || 0) * 60));
+              setDistanceText(mappedDistanceText);
+              setDurationText(mappedDurationText);
+              setSteps([]);
+
+              const payload: CachedRoutePayload = {
+                destination,
+                distanceText: mappedDistanceText,
+                durationText: mappedDurationText,
+                updatedAt: Date.now(),
+              };
+
+              storage.setItem(ROUTE_CACHE_KEY, payload);
+            }}
+            onError={(errorMessage: string) => {
+              setLoading(false);
+              setRoutePoints([]);
+              setSteps([]);
+              setRouteError(errorMessage || 'Unable to load route');
+            }}
           />
         ) : null}
       </MapView>

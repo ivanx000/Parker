@@ -41,17 +41,6 @@ Parker is an iOS app that saves your parking spot with one tap, then guides you 
 | Animations | [Lottie](https://airbnb.io/lottie/) |
 | Storage | [@react-native-async-storage/async-storage](https://react-native-async-storage.github.io/async-storage/) |
 
-### Backend (`backend/`)
-
-| | Technology |
-|---|---|
-| Runtime | Python 3.9+ |
-| Framework | [FastAPI](https://fastapi.tiangolo.com) |
-| Directions | Google Directions API |
-| Caching | In-memory (cachetools, 5-minute TTL) |
-| Rate limiting | 5 req/min, 200 req/month per user |
-| Server | Uvicorn |
-
 ---
 
 ## Project Structure
@@ -70,7 +59,7 @@ parker/
 │   │   ├── SettingsScreen.tsx
 │   │   └── ...
 │   ├── hooks/
-│   │   ├── useNavigationLimit.ts   ← Free/Pro usage enforcement
+│   │   ├── useLocalUsageLimit.ts   ← Local monthly usage enforcement
 │   │   └── useParkingSpot.ts       ← GPS save/load logic
 │   ├── lib/
 │   │   ├── design-system.ts        ← Tokens (colors, spacing, typography)
@@ -82,9 +71,6 @@ parker/
 │   ├── App.tsx                     ← App root
 │   ├── app.json                    ← Expo config
 │   └── .env.example                ← Required environment variables (template)
-├── backend/
-│   ├── main.py                 ← FastAPI server (POST /route)
-│   └── requirements.txt
 ├── package.json                ← Root monorepo scripts
 └── README.md
 ```
@@ -98,7 +84,6 @@ parker/
 - **Node.js** v18+
 - **npm** v9+
 - **Xcode** (for iOS simulator / device builds, macOS only)
-- **Python** 3.9+ (for backend)
 - **Expo CLI**: `npm install -g expo-cli`
 
 ### 1. Clone & install
@@ -119,8 +104,6 @@ cp app/.env.example app/.env
 Open `app/.env` and fill in your values:
 
 ```env
-EXPO_PUBLIC_BACKEND_URL=http://localhost:8000
-
 # Google Maps — https://console.cloud.google.com/
 EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_key_here
 
@@ -154,22 +137,6 @@ After the initial build, you can use the dev server for faster iteration:
 npx expo start --dev-client
 ```
 
-### 4. Run the backend (optional)
-
-The backend provides the walking directions API. It's optional if you use the Google Maps SDK directly.
-
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-```
-
-API docs available at `http://localhost:8000/docs`.
-
----
-
 ## Available Scripts
 
 Run these from the **root** of the repo:
@@ -178,7 +145,6 @@ Run these from the **root** of the repo:
 npm run dev           # Start Expo dev server (inside app/)
 npm run dev:ios       # Build and run on iOS simulator
 npm run dev:android   # Build and run on Android emulator
-npm run backend       # Start FastAPI backend
 npm run lint          # TypeScript type check (app/)
 ```
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { MapPinIcon, PaperAirplaneIcon, MapIcon } from 'react-native-heroicons/outline';
+import { MapPinIcon, ArrowPathIcon as PaperAirplaneIcon, GlobeAltIcon as MapIcon } from 'react-native-heroicons/outline';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { colors, spacing, typography, radius, layout, elevation } from '../../lib/design-system';
 

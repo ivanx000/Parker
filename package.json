@@ -9,7 +9,6 @@
     "dev:android": "npm --prefix app run android",
     "dev:ios": "npm --prefix app run ios",
     "dev:web": "npm --prefix app run web",
-    "backend": "cd backend && python main.py",
     "lint": "npm --prefix app run lint",
     "android": "npm --prefix app run android",
     "ios": "npm --prefix app run ios"
@@ -21,6 +20,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
+    "expo-module-scripts": "^5.0.8",
     "typescript": "~5.9.2"
   },
   "version": "1.0.0"

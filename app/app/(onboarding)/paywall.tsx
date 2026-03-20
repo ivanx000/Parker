@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, ScrollView, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
-import { SparklesIcon } from 'react-native-heroicons/solid';
-import { CheckCircleIcon } from 'react-native-heroicons/outline';
+import { SparklesIcon, CheckCircleIcon } from 'react-native-heroicons/solid';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { SubscriptionTier } from '../../types/parking';
 import { requestLocationPermission } from '../../lib/location';

@@ -68,9 +68,9 @@ This project was automatically converted from a React web app using Vite. The ex
 
 Google Maps API key is configured in `app.json` for both iOS and Android platforms. Update the key if needed.
 
-## Backend Integration
+## Local-First Architecture
 
-The backend is located in `/backend` and runs separately. See the Backend README for setup instructions.
+Parker stores parking spots and monthly navigation usage directly on-device with AsyncStorage. Route rendering is powered in-app using Google Directions via `react-native-maps-directions`.
 
 ## Development Workflow
 

@@ -13,7 +13,7 @@ import { Onboarding } from './components/Onboarding';
 import { SettingsScreen } from './components/SettingsScreen';
 import { RevenueCatPaywall } from './components/RevenueCatPaywall';
 import { useParkingSpot } from './hooks/useParkingSpot';
-import { useNavigationLimit } from './hooks/useNavigationLimit';
+import { useLocalUsageLimit } from './hooks/useLocalUsageLimit';
 import { SubscriptionTier } from './types/parking';
 import { storage } from './lib/storage';
 import { BillingStatus, initializeRevenueCat, refreshBillingStatus } from './lib/revenuecat';
@@ -215,7 +215,6 @@ const ROUTE_CACHE_TTL_MS = 1000 * 60 * 10;
 export default function App() {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { spot, currentPos, distance, isSaving, error, saveSuccess, saveSpot, clearSpot } = useParkingSpot();
-  const { tier, usage, limit, decrementSession, updateTier } = useNavigationLimit();
   const checkRevealAnim = useRef(new Animated.Value(0)).current;
   const buttonSuccessAnim = useRef(new Animated.Value(1)).current;
   const gridTranslateX = useRef(new Animated.Value(0)).current;
@@ -231,6 +230,7 @@ export default function App() {
     willRenew: false,
     productIdentifier: null,
   });
+  const { tier, usage, limit, decrementSession, updateTier } = useLocalUsageLimit(billingStatus.isPro);
   const [billingBusy, setBillingBusy] = useState(false);
   const [billingMessage, setBillingMessage] = useState<string | null>(null);
   const screenTranslateX = useRef(new Animated.Value(0)).current;

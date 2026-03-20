@@ -8,5 +8,5 @@
     "resolveJsonModule": true,
     "target": "ES2020"
   },
-  "include": ["**/*.ts", "**/*.tsx"]
+  "include": ["**/*.ts", "**/*.tsx", "**/*.d.ts"]
 }

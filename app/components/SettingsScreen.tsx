@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, Animated, Easing, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator, Animated, Easing, useWindowDimensions, Linking } from 'react-native';
 import { SparklesIcon, CheckCircleIcon as CheckCircleSolidIcon } from 'react-native-heroicons/solid';
 import { MinusCircleIcon, BellIcon, ShieldCheckIcon, QuestionMarkCircleIcon, ArrowPathIcon, Cog6ToothIcon as SettingsIcon, ArrowLeftIcon, ChevronRightIcon, ChevronDownIcon } from 'react-native-heroicons/outline';
 import { SubscriptionTier, UsageData } from '../types/parking';
@@ -366,8 +366,6 @@ export function SettingsScreen({
     paddingBottom: windowHeight >= 820 ? spacing.xxl : spacing.xl,
   };
 
-  const supportApiBaseUrl = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-
   const handleManagePress = async () => {
     setIsManaging(true);
     try {
@@ -447,27 +445,21 @@ export function SettingsScreen({
 
     setIsSendingSupport(true);
     try {
-      const response = await fetch(`${supportApiBaseUrl}/support`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: supportName.trim(),
-          email: supportEmail.trim(),
-          message: supportMessage.trim(),
-        }),
-      });
+      const subject = encodeURIComponent('Parker Support Request');
+      const body = encodeURIComponent(
+        `Name: ${supportName.trim()}\nEmail: ${supportEmail.trim()}\n\n${supportMessage.trim()}`
+      );
+      const mailtoUrl = `mailto:support@parker.app?subject=${subject}&body=${body}`;
 
-      if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        throw new Error(payload?.detail || 'Unable to send support request right now.');
+      const canOpen = await Linking.canOpenURL(mailtoUrl);
+      if (!canOpen) {
+        throw new Error('No email app is configured on this device.');
       }
 
-      setPreferenceStatus('Your support request was sent. We will follow up by email.');
-      setSupportMessage('');
+      await Linking.openURL(mailtoUrl);
+      setPreferenceStatus('Support draft opened in your email app.');
     } catch (error: any) {
-      setPreferenceStatus(error?.message || 'Support request failed. Please try again shortly.');
+      setPreferenceStatus(error?.message || 'Unable to open your email app right now.');
     } finally {
       setIsSendingSupport(false);
     }

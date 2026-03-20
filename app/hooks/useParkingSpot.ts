@@ -14,9 +14,16 @@ export function useParkingSpot() {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
-    storage.getItem(STORAGE_KEY).then(saved => {
+    let isActive = true;
+
+    storage.getItem<ParkingSpot>(STORAGE_KEY).then(saved => {
+      if (!isActive) return;
       if (saved) setSpot(saved);
     });
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   useEffect(() => {

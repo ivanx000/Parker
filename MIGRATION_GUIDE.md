@@ -97,8 +97,8 @@ npm run dev:ios         # iOS simulator
 npm run dev:android     # Android emulator
 ```
 
-### 5. Test Backend Connection
-Ensure your backend is running and update `BACKEND_URL` in `.env.local`
+### 5. Verify Local-First Flow
+Ensure `app/.env` includes Google Maps + RevenueCat keys and confirm parking save/navigation works offline for saved spot persistence.
 
 ## Files to Clean Up (Optional)
 
@@ -115,7 +115,6 @@ These are no longer needed since all code is in `app/`.
 ```
 parker/
 ├── app/                 ← Main Expo React Native app
-├── backend/            ← Python API server
 ├── package.json        ← Monorepo workspace config
 ├── README.md           ← Updated docs
 └── ...other files
@@ -138,7 +137,6 @@ npm run dev              # Start Expo dev server
 npm run dev:ios          # iOS simulator
 npm run dev:android      # Android emulator
 npm run lint             # Check TypeScript
-npm run backend          # Start Python backend
 ```
 
 ## Resources
@@ -152,9 +150,8 @@ npm run backend          # Start Python backend
 ## Need Help?
 
 1. Check `app/README.md` for app-specific details
-2. Check `backend/README.md` for API setup
-3. Refer to React Native documentation for component migration
-4. Run `expo doctor` to diagnose environment issues
+2. Refer to React Native documentation for component migration
+3. Run `expo doctor` to diagnose environment issues
 
 ---
 

@@ -16,13 +16,13 @@ export function useNavigationLimit() {
   const [usage, setUsage] = useState<UsageData>({ month: '', count: 0 });
 
   useEffect(() => {
-    storage.getItem(TIER_KEY).then(savedTier => {
+    storage.getItem<SubscriptionTier>(TIER_KEY).then(savedTier => {
       if (savedTier) setTier(savedTier);
     });
 
     Promise.all([
-      storage.getItem(USAGE_MONTH_KEY),
-      storage.getItem(USAGE_COUNT_KEY)
+      storage.getItem<string>(USAGE_MONTH_KEY),
+      storage.getItem<number>(USAGE_COUNT_KEY)
     ]).then(([savedMonth, savedCount]) => {
       const savedUsage: UsageData | null = savedMonth ? { 
         month: savedMonth, 

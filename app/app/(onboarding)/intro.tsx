@@ -47,7 +47,7 @@ export default function IntroScreen({ onNext }: { onNext: () => void }) {
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <Text style={styles.title}>
-        Welcome to Parker
+        Parker
       </Text>
     </Animated.View>
   );
