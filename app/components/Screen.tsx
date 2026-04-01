@@ -25,16 +25,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingTop: 0,
   },
+  contentContainerNoBottomPadding: {
+    paddingBottom: 0,
+  },
 });
 
 export function Screen({
   children,
   fullWidth = false,
   noPadding = false,
+  noBottomPadding = false,
 }: {
   children: React.ReactNode;
   fullWidth?: boolean;
   noPadding?: boolean;
+  noBottomPadding?: boolean;
 }) {
   const { height: windowHeight } = useWindowDimensions();
   const responsivePaddingTop =
@@ -57,7 +62,8 @@ export function Screen({
         styles.contentContainer, 
         { paddingTop: responsivePaddingTop, paddingBottom: responsivePaddingBottom },
         fullWidth && styles.contentContainerFullWidth,
-        noPadding && styles.contentContainerNoPadding
+        noPadding && styles.contentContainerNoPadding,
+        noBottomPadding && styles.contentContainerNoBottomPadding,
       ]}>
         {children}
       </View>

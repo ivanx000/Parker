@@ -4,6 +4,8 @@
   "main": "index.js",
   "scripts": {
     "start": "expo start",
+    "dev:tunnel": "expo start --dev-client --tunnel --scheme parker",
+    "dev:ios": "expo run:ios",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
