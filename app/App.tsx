@@ -103,6 +103,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   bottomBar: {
+    width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',

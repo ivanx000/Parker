@@ -8,7 +8,6 @@ import { colors, spacing, typography, radius, elevation } from '../lib/design-sy
 import { storage } from '../lib/storage';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
-const SCREEN_WIDTH = Dimensions.get('window').width;
 const TOP_LEFT_BUTTON_TOP = Math.max((Constants.statusBarHeight ?? 0) - 30, 2);
 
 type Position = { lat: number; lng: number };
@@ -161,7 +160,7 @@ const MAX_SHEET_HEIGHT = SCREEN_HEIGHT * 0.75;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: SCREEN_WIDTH,
+    width: '100%',
   },
   map: {
     ...StyleSheet.absoluteFillObject,
