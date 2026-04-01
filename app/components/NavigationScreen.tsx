@@ -24,6 +24,15 @@ type CachedRoutePayload = {
   updatedAt: number;
 };
 
+function stripHtml(input: string) {
+  return input
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 const WALKING_SPEED_MPS = 1.4;
 const ROUTE_CACHE_KEY = 'last_navigation_route';
 const ROUTE_CACHE_TTL_MS = 1000 * 60 * 10;
@@ -679,7 +688,20 @@ export function NavigationScreen({
               const mappedDurationText = formatDuration(Math.round((result?.duration || 0) * 60));
               setDistanceText(mappedDistanceText);
               setDurationText(mappedDurationText);
-              setSteps([]);
+
+              const mappedSteps: DirectionStep[] = Array.isArray(result?.legs)
+                ? result.legs.flatMap((leg: any) =>
+                    Array.isArray(leg?.steps)
+                      ? leg.steps.map((step: any) => ({
+                          instruction: stripHtml(step?.html_instructions || step?.maneuver || 'Continue straight'),
+                          distanceText: step?.distance?.text || '',
+                          durationText: step?.duration?.text || '',
+                        }))
+                      : []
+                  )
+                : [];
+
+              setSteps(mappedSteps);
 
               const payload: CachedRoutePayload = {
                 destination,

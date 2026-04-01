@@ -103,6 +103,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   bottomBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -664,7 +668,7 @@ export default function App() {
 
       {/* Bottom Nav Bar - Fixed at bottom (hidden in navigation mode) */}
       {currentScreen !== 'navigation' && (
-        <SafeAreaView style={styles.bottomBar}>
+        <SafeAreaView edges={['bottom']} style={styles.bottomBar}>
           <Pressable
             style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}
             onPress={() => navigateTo('home')}
