@@ -112,8 +112,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
     borderTopWidth: layout.borderWidth.thin,
     borderTopColor: colors.brand[600],
     backgroundColor: colors.brand[500],
@@ -122,8 +122,8 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.xs,
+    gap: 2,
+    paddingVertical: 2,
     paddingHorizontal: spacing.md,
     flex: 1,
   },
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.08 }],
   },
   navIconWrap: {
-    marginTop: spacing.sm,
+    marginTop: 0,
   },
   navButtonText: {
     ...typography.label,
@@ -671,7 +671,7 @@ export default function App() {
 
       {/* Bottom Nav Bar - Fixed at bottom (hidden in navigation mode) */}
       {currentScreen !== 'navigation' && (
-        <View style={[styles.bottomBar, { paddingBottom: spacing.sm + insets.bottom }]}>
+        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + spacing.xs }]}>
           <Pressable
             style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}
             onPress={() => navigateTo('home')}
