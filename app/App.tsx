@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.08 }],
   },
   navIconWrap: {
-    marginTop: 0,
+    marginTop: 2,
   },
   navButtonText: {
     ...typography.label,
@@ -677,8 +677,8 @@ export default function App() {
             styles.bottomBar,
             {
               height: navBarContentHeight + insets.bottom,
-              paddingTop: spacing.xs,
-              paddingBottom: insets.bottom + 2,
+              paddingTop: spacing.sm,
+              paddingBottom: insets.bottom + 1,
             },
           ]}
         >
