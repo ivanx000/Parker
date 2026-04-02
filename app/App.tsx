@@ -122,8 +122,8 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
-    paddingVertical: 2,
+    gap: 1,
+    paddingVertical: 0,
     paddingHorizontal: spacing.md,
     flex: 1,
   },
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   },
   navButtonText: {
     ...typography.label,
-    fontSize: 10,
+    fontSize: 9,
   },
   navButtonActive: {
     color: colors.neutral[0],
@@ -220,6 +220,7 @@ const ROUTE_CACHE_TTL_MS = 1000 * 60 * 10;
 export default function App() {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const navBarContentHeight = 48;
   const { spot, currentPos, distance, isSaving, error, saveSuccess, saveSpot, clearSpot } = useParkingSpot();
   const checkRevealAnim = useRef(new Animated.Value(0)).current;
   const buttonSuccessAnim = useRef(new Animated.Value(1)).current;
@@ -675,10 +676,9 @@ export default function App() {
           style={[
             styles.bottomBar,
             {
-              // Keep the slim bar height while visually centering content
-              // when bottom safe-area inset is large (iPhone home indicator).
-              paddingTop: spacing.xs + Math.round(insets.bottom * 0.35),
-              paddingBottom: insets.bottom + spacing.xs,
+              height: navBarContentHeight + insets.bottom,
+              paddingTop: spacing.xs,
+              paddingBottom: insets.bottom + 2,
             },
           ]}
         >
@@ -690,9 +690,9 @@ export default function App() {
               <>
                 <View style={styles.navIconWrap}>
                   {currentScreen === 'home' || screenTransitionTarget === 'home' || pressed ? (
-                    <HomeSolidIcon size={22} color={colors.neutral[0]} />
+                    <HomeSolidIcon size={20} color={colors.neutral[0]} />
                   ) : (
-                    <HomeOutlineIcon size={22} color={colors.neutral[0]} strokeWidth={1.6} />
+                    <HomeOutlineIcon size={20} color={colors.neutral[0]} strokeWidth={1.6} />
                   )}
                 </View>
                 <Text style={[styles.navButtonText, currentScreen === 'home' ? styles.navButtonActive : styles.navButtonInactive]}>Home</Text>
@@ -708,9 +708,9 @@ export default function App() {
               <>
                 <View style={styles.navIconWrap}>
                   {currentScreen === 'settings' || screenTransitionTarget === 'settings' || pressed ? (
-                    <SettingsSolidIcon size={22} color={colors.neutral[0]} />
+                    <SettingsSolidIcon size={20} color={colors.neutral[0]} />
                   ) : (
-                    <SettingsOutlineIcon size={22} color={colors.neutral[0]} strokeWidth={1.6} />
+                    <SettingsOutlineIcon size={20} color={colors.neutral[0]} strokeWidth={1.6} />
                   )}
                 </View>
                 <Text style={[styles.navButtonText, currentScreen === 'settings' ? styles.navButtonActive : styles.navButtonInactive]}>Settings</Text>
