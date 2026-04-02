@@ -36,6 +36,11 @@ function stripHtml(input: string) {
 const WALKING_SPEED_MPS = 1.4;
 const ROUTE_CACHE_KEY = 'last_navigation_route';
 const ROUTE_CACHE_TTL_MS = 1000 * 60 * 10;
+const ROUTE_TURN_RECALC_MIN_INTERVAL_MS = 2500;
+const CAMERA_FOLLOW_MIN_INTERVAL_MS = 1200;
+const CAMERA_FOLLOW_MIN_MOVE_METERS = 5;
+const CAMERA_FOLLOW_LOCK_MS_AFTER_MANUAL = 5000;
+const CAMERA_FOLLOW_LOCK_MS_AFTER_MODE_CHANGE = 2500;
 
 function formatDistance(distanceMeters: number) {
   if (distanceMeters >= 1000) {
@@ -159,6 +164,38 @@ function deriveHeadingFromRoute(current: Position, points: LatLng[]) {
 
   const heading = (Math.atan2(y, x) * 180) / Math.PI;
   return (heading + 360) % 360;
+}
+
+function bearingBetween(from: Position, to: Position) {
+  const lat1 = (from.lat * Math.PI) / 180;
+  const lat2 = (to.lat * Math.PI) / 180;
+  const diffLong = ((to.lng - from.lng) * Math.PI) / 180;
+
+  const y = Math.sin(diffLong) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(diffLong);
+
+  const heading = (Math.atan2(y, x) * 180) / Math.PI;
+  return (heading + 360) % 360;
+}
+
+function headingDeltaDegrees(a: number, b: number) {
+  const diff = Math.abs(a - b) % 360;
+  return diff > 180 ? 360 - diff : diff;
+}
+
+function getAdaptiveRouteRefreshConfig(distanceToDestinationMeters: number) {
+  if (distanceToDestinationMeters > 800) {
+    return { minDistanceMeters: 28, minIntervalMs: 9000, turnThresholdDeg: 30 };
+  }
+  if (distanceToDestinationMeters > 300) {
+    return { minDistanceMeters: 20, minIntervalMs: 7000, turnThresholdDeg: 25 };
+  }
+  if (distanceToDestinationMeters > 120) {
+    return { minDistanceMeters: 12, minIntervalMs: 5000, turnThresholdDeg: 20 };
+  }
+  return { minDistanceMeters: 7, minIntervalMs: 3200, turnThresholdDeg: 15 };
 }
 
 
@@ -373,9 +410,15 @@ export function NavigationScreen({
   const [routeError, setRouteError] = useState<string | null>(null);
   const [metricsSectionHeight, setMetricsSectionHeight] = useState(MIN_SHEET_HEIGHT);
   const [expandedContentHeight, setExpandedContentHeight] = useState(0);
+  const [routeOrigin, setRouteOrigin] = useState<Position | null>(currentPos);
   const currentSheetStateRef = useRef<'min' | 'mid' | 'max'>('min');
   const dynamicMidSheetHeightRef = useRef(MID_SHEET_HEIGHT);
   const dynamicMaxSheetHeightRef = useRef(MAX_SHEET_HEIGHT);
+  const lastRouteRefreshAtRef = useRef(0);
+  const lastBearingToDestinationRef = useRef<number | null>(null);
+  const lastCameraUpdateAtRef = useRef(0);
+  const lastCameraCenterRef = useRef<Position | null>(null);
+  const cameraFollowLockedUntilRef = useRef(0);
   const hasAutoFitRef = useRef(false);
   const googleMapsApiKey = getGoogleMapsApiKey();
 
@@ -419,6 +462,7 @@ export function NavigationScreen({
 
   const fitRouteOverview = (animated = true) => {
     if (!mapRef.current || routePoints.length < 2) return;
+    cameraFollowLockedUntilRef.current = Date.now() + CAMERA_FOLLOW_LOCK_MS_AFTER_MODE_CHANGE;
 
     const pointsToFit = [...routePoints];
     if (currentPos) {
@@ -440,6 +484,7 @@ export function NavigationScreen({
 
   const handleCloseNavigationView = () => {
     if (!mapRef.current || !currentPos) return;
+    cameraFollowLockedUntilRef.current = Date.now() + CAMERA_FOLLOW_LOCK_MS_AFTER_MODE_CHANGE;
 
     const heading = deriveHeadingFromRoute(currentPos, routePoints);
     mapRef.current.animateCamera(
@@ -506,7 +551,46 @@ export function NavigationScreen({
     return () => {
       isActive = false;
     };
-  }, [currentPos, destination]);
+  }, [destination, googleMapsApiKey]);
+
+  useEffect(() => {
+    if (!currentPos) return;
+
+    const now = Date.now();
+    const bearingToDestination = bearingBetween(currentPos, destination);
+
+    if (!routeOrigin) {
+      setRouteOrigin(currentPos);
+      lastRouteRefreshAtRef.current = now;
+      lastBearingToDestinationRef.current = bearingToDestination;
+      return;
+    }
+
+    const distanceToDestinationMeters = distanceBetweenPositions(currentPos, destination);
+    const { minDistanceMeters, minIntervalMs, turnThresholdDeg } =
+      getAdaptiveRouteRefreshConfig(distanceToDestinationMeters);
+
+    const movedMeters = distanceBetweenPositions(routeOrigin, currentPos);
+    const elapsedMs = now - lastRouteRefreshAtRef.current;
+
+    const previousBearing = lastBearingToDestinationRef.current;
+    const hasTurnedMeaningfully =
+      previousBearing !== null &&
+      headingDeltaDegrees(previousBearing, bearingToDestination) >= turnThresholdDeg;
+
+    const shouldRecalculateByDistance =
+      movedMeters >= minDistanceMeters && elapsedMs >= minIntervalMs;
+    const shouldRecalculateByTurn =
+      hasTurnedMeaningfully && elapsedMs >= ROUTE_TURN_RECALC_MIN_INTERVAL_MS;
+    const shouldRecalculate = shouldRecalculateByDistance || shouldRecalculateByTurn;
+
+    if (shouldRecalculate) {
+      setRouteOrigin(currentPos);
+      lastRouteRefreshAtRef.current = now;
+    }
+
+    lastBearingToDestinationRef.current = bearingToDestination;
+  }, [currentPos, routeOrigin, destination]);
 
   useEffect(() => {
     if (routePoints.length > 1) {
@@ -520,6 +604,42 @@ export function NavigationScreen({
       hasAutoFitRef.current = true;
     }
   }, [routePoints]);
+
+  useEffect(() => {
+    if (!mapRef.current || !currentPos || routePoints.length < 2) return;
+
+    const now = Date.now();
+    if (now < cameraFollowLockedUntilRef.current) return;
+
+    const lastCameraCenter = lastCameraCenterRef.current;
+    if (!lastCameraCenter) {
+      lastCameraCenterRef.current = currentPos;
+      lastCameraUpdateAtRef.current = now;
+      return;
+    }
+
+    const movedMeters = distanceBetweenPositions(lastCameraCenter, currentPos);
+    const elapsedMs = now - lastCameraUpdateAtRef.current;
+    const shouldUpdateCamera =
+      movedMeters >= CAMERA_FOLLOW_MIN_MOVE_METERS &&
+      elapsedMs >= CAMERA_FOLLOW_MIN_INTERVAL_MS;
+
+    if (!shouldUpdateCamera) return;
+
+    const heading = deriveHeadingFromRoute(currentPos, routePoints);
+    mapRef.current.animateCamera(
+      {
+        center: { latitude: currentPos.lat, longitude: currentPos.lng },
+        heading,
+        pitch: 45,
+        zoom: 17.5,
+      },
+      { duration: 700 }
+    );
+
+    lastCameraCenterRef.current = currentPos;
+    lastCameraUpdateAtRef.current = now;
+  }, [currentPos, routePoints]);
 
   // Pan responder for dragging the bottom sheet
   const panResponder = useRef(
@@ -649,6 +769,9 @@ export function NavigationScreen({
         showsMyLocationButton={false}
         zoomEnabled
         zoomControlEnabled={false}
+        onPanDrag={() => {
+          cameraFollowLockedUntilRef.current = Date.now() + CAMERA_FOLLOW_LOCK_MS_AFTER_MANUAL;
+        }}
       >
         {currentPos ? (
           <Marker
@@ -663,9 +786,9 @@ export function NavigationScreen({
           pinColor={colors.success.default}
         />
 
-        {currentPos && googleMapsApiKey ? (
+        {routeOrigin && currentPos && googleMapsApiKey ? (
           <MapViewDirections
-            origin={{ latitude: currentPos.lat, longitude: currentPos.lng }}
+            origin={{ latitude: routeOrigin.lat, longitude: routeOrigin.lng }}
             destination={{ latitude: destination.lat, longitude: destination.lng }}
             apikey={googleMapsApiKey}
             mode="WALKING"
