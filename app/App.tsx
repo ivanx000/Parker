@@ -121,9 +121,10 @@ const styles = StyleSheet.create({
   navButton: {
     flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     gap: 1,
-    paddingVertical: 0,
+    paddingTop: 0,
+    paddingBottom: 2,
     paddingHorizontal: spacing.md,
     flex: 1,
   },
@@ -131,7 +132,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.08 }],
   },
   navIconWrap: {
-    marginTop: 4,
+    marginTop: 6,
   },
   navButtonText: {
     ...typography.label,
@@ -677,8 +678,8 @@ export default function App() {
             styles.bottomBar,
             {
               height: navBarContentHeight + insets.bottom,
-              paddingTop: spacing.sm,
-              paddingBottom: insets.bottom + 1,
+              paddingTop: spacing.xs,
+              paddingBottom: Math.max(insets.bottom - 5, spacing.sm),
             },
           ]}
         >
