@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, ScrollView, TouchableOpacity, Pressable, Modal, StyleSheet, Text, Animated, Easing, Alert, AppState, useWindowDimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { MapPinIcon, ExclamationCircleIcon, CheckIcon, HomeIcon as HomeOutlineIcon, Cog6ToothIcon as SettingsOutlineIcon } from 'react-native-heroicons/outline';
 import { HomeIcon as HomeSolidIcon, Cog6ToothIcon as SettingsSolidIcon } from 'react-native-heroicons/solid';
@@ -219,6 +219,7 @@ const ROUTE_CACHE_TTL_MS = 1000 * 60 * 10;
 
 export default function App() {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { spot, currentPos, distance, isSaving, error, saveSuccess, saveSpot, clearSpot } = useParkingSpot();
   const checkRevealAnim = useRef(new Animated.Value(0)).current;
   const buttonSuccessAnim = useRef(new Animated.Value(1)).current;
@@ -670,7 +671,7 @@ export default function App() {
 
       {/* Bottom Nav Bar - Fixed at bottom (hidden in navigation mode) */}
       {currentScreen !== 'navigation' && (
-        <SafeAreaView edges={['bottom']} style={styles.bottomBar}>
+        <View style={[styles.bottomBar, { paddingBottom: spacing.sm + insets.bottom }]}>
           <Pressable
             style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}
             onPress={() => navigateTo('home')}
@@ -706,7 +707,7 @@ export default function App() {
               </>
             )}
           </Pressable>
-        </SafeAreaView>
+        </View>
       )}
 
       {/* RevenueCat Paywall Modal */}
