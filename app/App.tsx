@@ -671,7 +671,17 @@ export default function App() {
 
       {/* Bottom Nav Bar - Fixed at bottom (hidden in navigation mode) */}
       {currentScreen !== 'navigation' && (
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + spacing.xs }]}>
+        <View
+          style={[
+            styles.bottomBar,
+            {
+              // Keep the slim bar height while visually centering content
+              // when bottom safe-area inset is large (iPhone home indicator).
+              paddingTop: spacing.xs + Math.round(insets.bottom * 0.35),
+              paddingBottom: insets.bottom + spacing.xs,
+            },
+          ]}
+        >
           <Pressable
             style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}
             onPress={() => navigateTo('home')}

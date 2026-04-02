@@ -162,7 +162,7 @@ function deriveHeadingFromRoute(current: Position, points: LatLng[]) {
 }
 
 
-const MIN_SHEET_HEIGHT = 90; // Minimized with basic info
+const MIN_SHEET_HEIGHT = 104; // Minimized with basic info
 const MID_SHEET_HEIGHT = 220;
 const MAX_SHEET_HEIGHT = SCREEN_HEIGHT * 0.75;
 
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   metricsContainer: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xs,
-    paddingBottom: spacing.sm,
+    paddingBottom: spacing.lg,
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'space-between',
