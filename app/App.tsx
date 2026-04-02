@@ -579,6 +579,7 @@ export default function App() {
         fullWidth={currentScreen === 'home' || currentScreen === 'settings' || currentScreen === 'navigation'}
         noPadding={currentScreen === 'home' || currentScreen === 'navigation'}
         noBottomPadding={currentScreen === 'navigation'}
+        safeAreaEdges={currentScreen === 'navigation' ? ['top', 'left', 'right'] : undefined}
       >
         <View style={styles.container}>
           {/* Main Content Area */}

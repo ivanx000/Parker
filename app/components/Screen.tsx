@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Edge, SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, layout } from '../lib/design-system';
 
 const styles = StyleSheet.create({
@@ -35,11 +35,13 @@ export function Screen({
   fullWidth = false,
   noPadding = false,
   noBottomPadding = false,
+  safeAreaEdges,
 }: {
   children: React.ReactNode;
   fullWidth?: boolean;
   noPadding?: boolean;
   noBottomPadding?: boolean;
+  safeAreaEdges?: Edge[];
 }) {
   const { height: windowHeight } = useWindowDimensions();
   const responsivePaddingTop =
@@ -57,7 +59,7 @@ export function Screen({
       : spacing.md;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={safeAreaEdges}>
       <View style={[
         styles.contentContainer, 
         { paddingTop: responsivePaddingTop, paddingBottom: responsivePaddingBottom },
