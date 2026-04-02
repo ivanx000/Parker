@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.08 }],
   },
   navIconWrap: {
-    marginTop: 2,
+    marginTop: 4,
   },
   navButtonText: {
     ...typography.label,
@@ -690,9 +690,9 @@ export default function App() {
               <>
                 <View style={styles.navIconWrap}>
                   {currentScreen === 'home' || screenTransitionTarget === 'home' || pressed ? (
-                    <HomeSolidIcon size={20} color={colors.neutral[0]} />
+                    <HomeSolidIcon size={22} color={colors.neutral[0]} />
                   ) : (
-                    <HomeOutlineIcon size={20} color={colors.neutral[0]} strokeWidth={1.6} />
+                    <HomeOutlineIcon size={22} color={colors.neutral[0]} strokeWidth={1.6} />
                   )}
                 </View>
                 <Text style={[styles.navButtonText, currentScreen === 'home' ? styles.navButtonActive : styles.navButtonInactive]}>Home</Text>
@@ -708,9 +708,9 @@ export default function App() {
               <>
                 <View style={styles.navIconWrap}>
                   {currentScreen === 'settings' || screenTransitionTarget === 'settings' || pressed ? (
-                    <SettingsSolidIcon size={20} color={colors.neutral[0]} />
+                    <SettingsSolidIcon size={22} color={colors.neutral[0]} />
                   ) : (
-                    <SettingsOutlineIcon size={20} color={colors.neutral[0]} strokeWidth={1.6} />
+                    <SettingsOutlineIcon size={22} color={colors.neutral[0]} strokeWidth={1.6} />
                   )}
                 </View>
                 <Text style={[styles.navButtonText, currentScreen === 'settings' ? styles.navButtonActive : styles.navButtonInactive]}>Settings</Text>
