@@ -1,0 +1,6 @@
+module.exports = {
+  preset: 'jest-expo',
+  testMatch: ['**/__tests__/**/*.test.ts?(x)'],
+  clearMocks: true,
+  collectCoverageFrom: ['lib/**/*.ts', 'hooks/**/*.ts'],
+};
