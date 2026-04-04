@@ -34,6 +34,36 @@ Or from the app directory:
 expo start
 ```
 
+## Testing
+
+Unit tests are configured with Jest (`jest-expo`) and live under:
+
+```text
+app/__tests__/
+```
+
+Run tests from the app directory:
+
+```bash
+cd /Users/ivanxie/Developer/parker/app
+
+# Run all tests once
+npm run test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests in CI mode (single process, deterministic output)
+npm run test:ci
+```
+
+You can also run Jest directly:
+
+```bash
+cd /Users/ivanxie/Developer/parker/app
+npx jest --runInBand --no-watchman
+```
+
 ## Project Structure
 
 ```
