@@ -1,136 +1,108 @@
-# Parker - Expo React Native App
+# Parker App (Expo React Native)
 
-This is the main mobile application for Parker, built with Expo and React Native.
+This directory contains Parker's mobile app built with Expo + React Native.
 
 ## Setup
 
-This project is part of a monorepo. Dependencies are installed from the root:
+Install dependencies in this app directory:
 
 ```bash
+cd /Users/ivanxie/Developer/parker/app
 npm install
 ```
 
-## Running the App
-
-From the root directory:
+Copy env template and set values:
 
 ```bash
-# Start the development server
-npm run dev
-
-# Run on iOS simulator
-npm run dev:ios
-
-# Run on Android emulator
-npm run dev:android
-
-# Run on web (experimental)
-npm run dev:web
+cp .env.example .env
 ```
 
-Or from the app directory:
+Required variables:
+
+```env
+EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=...
+EXPO_PUBLIC_REVENUECAT_API_KEY=...
+EXPO_PUBLIC_RC_ENTITLEMENT_ID=Parker Pro
+EXPO_PUBLIC_RC_MONTHLY_PRODUCT_ID=monthly
+EXPO_PUBLIC_RC_OFFERING_ID=Default
+```
+
+## Running The App
+
+From this directory:
 
 ```bash
-expo start
+npm run start
+npm run ios
+npm run android
+npm run web
+```
+
+From repo root (proxy scripts):
+
+```bash
+npm run dev
+npm run dev:ios
+npm run dev:android
+npm run dev:web
 ```
 
 ## Testing
 
-Unit tests are configured with Jest (`jest-expo`) and live under:
+Unit tests are configured with Jest (`jest-expo`) under:
 
 ```text
-app/__tests__/
+__tests__/
 ```
 
-Run tests from the app directory:
+Run tests from this directory:
 
 ```bash
-cd /Users/ivanxie/Developer/parker/app
-
-# Run all tests once
 npm run test
-
-# Run tests in watch mode
 npm run test:watch
-
-# Run tests in CI mode (single process, deterministic output)
 npm run test:ci
 ```
 
-You can also run Jest directly:
+Direct Jest command:
 
 ```bash
-cd /Users/ivanxie/Developer/parker/app
 npx jest --runInBand --no-watchman
 ```
 
-## Project Structure
-
-```
-app/
-├── App.tsx                 # Main app component
-├── index.js               # Expo entry point
-├── app.json              # Expo configuration (Google Maps API, etc)
-├── babel.config.js       # Babel configuration
-├── tsconfig.json         # TypeScript configuration
-├── assets/               # App icons and splash screens
-├── components/           # React Native components
-├── hooks/                # Custom React hooks
-├── lib/                  # Utility functions and helpers
-├── types/                # TypeScript type definitions
-└── app/                  # App routing structure (onboarding screens)
-```
-
-## Important Notes
-
-⚠️ **Web Components Migration Required**
-
-This project was automatically converted from a React web app using Vite. The existing components are built for React DOM and need to be adapted to React Native. Key changes needed:
-
-- Replace `<div>` with `<View>`
-- Replace `<input>` with `<TextInput>`
-- Replace Tailwind CSS with React Native StyleSheet
-- Replace `lucide-react` icons with `lucide-react-native`
-- Update async storage calls to use `@react-native-async-storage/async-storage`
-- Replace web navigation with React Navigation
-
-## Google Maps Integration
-
-Google Maps API key is configured in `app.json` for both iOS and Android platforms. Update the key if needed.
-
-## Local-First Architecture
-
-Parker stores parking spots and monthly navigation usage directly on-device with AsyncStorage. Route rendering is powered in-app using Google Directions via `react-native-maps-directions`.
-
-## Development Workflow
-
-1. Install dependencies: `npm install`
-2. Start development: `npm run dev`
-3. Update components to use React Native APIs
-4. Test on iOS simulator: `npm run dev:ios`
-5. Test on Android emulator: `npm run dev:android`
-
-## Building for Production
+## Lint / Type Check
 
 ```bash
-# Build for iOS
-eas build --platform ios
-
-# Build for Android  
-eas build --platform android
-
-# Build for both
-eas build
+npm run lint
 ```
 
-(Requires EAS CLI setup)
+## Current Project Structure
 
-## Common Issues
+```text
+app/
+├── App.tsx
+├── index.js
+├── app.config.js
+├── app.json
+├── __tests__/
+├── app/(onboarding)/
+├── assets/
+├── components/
+├── hooks/
+├── lib/
+├── types/
+├── ios/
+└── android/
+```
 
-**Module not found errors**: The project was auto-converted from web to mobile. Install any missing dependencies from the app's package.json.
+## Configuration Notes
 
-**Icons not found**: Install `lucide-react-native` and update component imports.
+- Dynamic Expo config is defined in `app.config.js`.
+- `app.json` currently contains basic metadata (name, slug, scheme).
+- Maps/location/subscription features require native dev builds for full validation.
 
-**Styling issues**: React Native doesn't support CSS. Convert Tailwind classes to StyleSheet styles.
+## Build for Production
 
-For more information, see [Expo Documentation](https://docs.expo.dev)
+```bash
+eas build --platform ios
+eas build --platform android
+```
